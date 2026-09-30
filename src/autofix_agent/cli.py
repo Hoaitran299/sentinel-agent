@@ -14,6 +14,10 @@ from .log_sources import Cursor, LogTailer, build_source
 from .pipeline import AgentPipeline
 from .storage import StateStore
 
+# How often the watcher re-resolves the base branch while errors are arriving, so incidents
+# observed after a merge/push are tagged with the commit a fix run will actually start from.
+SOURCE_REFRESH_SECONDS = 30
+
 
 def parser() -> argparse.ArgumentParser:
     root = argparse.ArgumentParser(description="External Laravel log-driven AI fix orchestrator")
@@ -111,6 +115,7 @@ def watch(config: Config, from_start: bool, once: bool) -> int:
         tailer = LogTailer(source, cursor)
         pipeline = AgentPipeline(config, store)
         source_commit = pipeline.resolve_source()
+        source_checked_at = time.monotonic()
         runtime = runtime_settings.load(store, config)
         pipeline.apply_settings(runtime)
         stage("OBSERVE", "Watching Laravel log", source=source.label)
@@ -150,9 +155,18 @@ def watch(config: Config, from_start: bool, once: bool) -> int:
                 store.save_cursor(source.key, cursor.identity, cursor.offset)
             else:
                 store.touch_cursor(source.key)
-            for event in events:
-                if not matches_any(event, config.include_patterns):
-                    continue
+            matching = [event for event in events if matches_any(event, config.include_patterns)]
+            if matching and time.monotonic() - source_checked_at >= SOURCE_REFRESH_SECONDS:
+                source_checked_at = time.monotonic()
+                try:
+                    latest_commit = pipeline.resolve_source()
+                except Exception as error:
+                    stage("ERROR", "Could not refresh source baseline; keeping previous", reason="{}: {}".format(error.__class__.__name__, error))
+                else:
+                    if latest_commit != source_commit:
+                        stage("OBSERVE", "Source baseline changed", branch=config.base_branch, previous=source_commit[:12], commit=latest_commit[:12])
+                        source_commit = latest_commit
+            for event in matching:
                 decision = store.record_event(
                     event,
                     source_commit=source_commit,
