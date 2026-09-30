@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "demo-auto-fixbug-orchestrator"
+version = "0.1.0"
+description = "External log-driven AI bug-fix orchestrator"
+requires-python = ">=3.9"
+dependencies = ["PyMySQL>=1.1,<2"]
+
+[project.optional-dependencies]
+s3 = ["boto3>=1.28,<2"]
+
+[project.scripts]
+auto-fix = "autofix_agent.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+autofix_agent = ["static/*"]
+

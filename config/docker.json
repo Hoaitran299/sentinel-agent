@@ -1,0 +1,43 @@
+{
+  "source_repo": "/workspace/laravel",
+  "log_path": "/workspace/laravel/storage/logs/laravel.log",
+  "base_branch": "master",
+  "state_db": "var/state.sqlite3",
+  "database_url_env": "AI_FIX_DATABASE_URL",
+  "ui_host": "127.0.0.1",
+  "ui_port": 8787,
+  "report_language": "en",
+  "workspace_root": "/var/lib/ai-fix/worktrees",
+  "reports_dir": "var/reports",
+  "mode": "report_and_fix",
+  "threshold": 3,
+  "window_seconds": 600,
+  "poll_interval_seconds": 1,
+  "start_at_end": true,
+  "include_patterns": [
+    "SQLSTATE.*(?:phone|NOT NULL)",
+    "Column ['\"`]?phone['\"`]? cannot be null",
+    "NOT NULL constraint failed: users\\.phone"
+  ],
+  "claude_binary": "claude",
+  "claude_timeout_seconds": 900,
+  "claude_max_budget_usd": 3,
+  "bootstrap_dependencies": true,
+  "allowed_paths": ["app/Http/Controllers/ProfileController.php", "app/Http/Requests/ProfileUpdateRequest.php", "resources/views/profile/", "tests/Feature/Profile/"],
+  "protected_paths": [".github/", "AGENTS.md", "bootstrap/", "composer.json", "composer.lock", "config/", "package.json", "package-lock.json", "phpunit.xml", "routes/"],
+  "max_changed_files": 8,
+  "max_diff_lines": 500,
+  "require_new_test": true,
+  "publish_pull_request": false,
+  "github_repository": "nguyenthanhthuc2000/demo-agent-ai-auto-fix-bug",
+  "github_api_url": "https://api.github.com",
+  "github_git_url": "https://github.com/nguyenthanhthuc2000/demo-agent-ai-auto-fix-bug.git",
+  "github_token_env": "AI_FIX_GITHUB_TOKEN",
+  "github_draft": true,
+  "verification_commands": [
+    ["vendor/bin/pint", "--dirty", "--format", "agent"],
+    ["php", "artisan", "test", "--compact"],
+    ["npm", "run", "build"],
+    ["git", "diff", "--check"]
+  ]
+}

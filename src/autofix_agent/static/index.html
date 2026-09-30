@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI Fix Console</title>
+  <link rel="stylesheet" href="/app.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo" aria-hidden="true"></span>
+      <div>
+        <h1>AI Fix Console</h1>
+        <p>Laravel log → threshold → Claude → verified PR</p>
+      </div>
+    </div>
+    <div class="top-actions">
+      <div class="pills" id="pills"></div>
+      <button type="button" class="btn ghost" id="settings-open">Cài đặt</button>
+      <button type="button" class="btn ghost danger-text" id="clear-open">Xóa dữ liệu</button>
+    </div>
+  </header>
+
+  <section class="stats" id="stats" aria-label="Incident counters"></section>
+
+  <main class="layout">
+    <section class="panel list-panel" aria-label="Incidents">
+      <div class="panel-head">
+        <h2>Incidents</h2>
+        <div class="filters" id="filters" role="tablist"></div>
+      </div>
+      <ul class="incident-list" id="incident-list"></ul>
+    </section>
+
+    <section class="panel detail-panel" id="detail" aria-live="polite">
+      <div class="empty">
+        <h2>Chọn một incident</h2>
+        <p>Timeline, kết quả verify, report và PR sẽ hiển thị ở đây. Dữ liệu tự cập nhật mỗi 2 giây.</p>
+      </div>
+    </section>
+
+    <aside class="panel feed-panel" aria-label="Live activity">
+      <div class="panel-head"><h2>Live activity</h2><span class="live-dot" id="live-dot"></span></div>
+      <ol class="feed" id="feed"></ol>
+    </aside>
+  </main>
+
+  <dialog id="report-dialog">
+    <div class="dialog-head">
+      <h2 id="report-title">Report</h2>
+      <button type="button" class="btn ghost" id="report-close">Đóng</button>
+    </div>
+    <pre id="report-body"></pre>
+  </dialog>
+  <dialog id="settings-dialog" aria-labelledby="settings-title">
+    <form method="dialog" id="settings-form">
+      <div class="dialog-head">
+        <h2 id="settings-title">Cài đặt xử lý lỗi</h2>
+      </div>
+      <div class="dialog-body">
+        <fieldset class="modes">
+          <legend>Khi lỗi đạt ngưỡng</legend>
+          <label class="mode-card">
+            <input type="radio" name="mode" value="report_and_fix">
+            <span><strong>Báo cáo và tự fix</strong><small>Gửi Telegram và chạy AI fix tự động (mặc định).</small></span>
+          </label>
+          <label class="mode-card">
+            <input type="radio" name="mode" value="fix_only">
+            <span><strong>Chỉ tự fix</strong><small>Chạy AI fix tự động, không gửi Telegram. Vẫn xem được trên dashboard.</small></span>
+          </label>
+          <label class="mode-card">
+            <input type="radio" name="mode" value="report_only">
+            <span><strong>Chỉ báo cáo</strong><small>Gửi Telegram, không chạy agent. Bấm "Chạy AI fix" trên incident khi muốn sửa.</small></span>
+          </label>
+        </fieldset>
+        <div class="field-row">
+          <label class="field"><span>Số lần lỗi (ngưỡng)</span>
+            <input type="number" id="setting-threshold" min="1" max="1000" required>
+          </label>
+          <label class="field"><span>Trong khoảng (giây)</span>
+            <input type="number" id="setting-window" min="10" max="604800" required>
+          </label>
+        </div>
+        <p class="hint" id="settings-hint"></p>
+      </div>
+      <div class="dialog-foot">
+        <button type="button" class="btn ghost" id="settings-cancel">Hủy</button>
+        <button type="button" class="btn" id="settings-save">Lưu cài đặt</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="clear-dialog" aria-labelledby="clear-title">
+    <form method="dialog" id="clear-form">
+      <div class="dialog-head">
+        <h2 id="clear-title">Xóa dữ liệu incident</h2>
+      </div>
+      <div class="dialog-body">
+        <p>Thao tác này xóa toàn bộ incident, occurrence, lần chạy agent và timeline khỏi database.</p>
+        <ul>
+          <li>Trước khi xóa, hệ thống tự sao lưu ra <code>var/backups/state-*.json</code>.</li>
+          <li>Log cursor được giữ lại, watcher không đọc lại lỗi cũ trong log.</li>
+          <li>Branch <code>ai-fix/*</code> và Pull Request trên GitHub không bị ảnh hưởng.</li>
+          <li>Không thể xóa khi agent đang chạy một incident.</li>
+        </ul>
+        <label class="check"><input type="checkbox" id="clear-reports"> Xóa luôn các file report trong <code>var/reports</code></label>
+        <label class="field"><span>Gõ <strong>CLEAR</strong> để xác nhận</span>
+          <input type="text" id="clear-confirm" autocomplete="off" spellcheck="false" placeholder="CLEAR">
+        </label>
+      </div>
+      <div class="dialog-foot">
+        <button type="button" class="btn ghost" id="clear-cancel">Hủy</button>
+        <button type="button" class="btn danger" id="clear-submit" disabled>Xóa dữ liệu</button>
+      </div>
+    </form>
+  </dialog>
+  <div class="toast" id="toast" role="status"></div>
+</body>
+</html>
