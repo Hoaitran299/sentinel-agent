@@ -95,7 +95,7 @@ class AgentPipeline:
             current_source = self.resolve_source()
             if current_source != incident["source_commit"]:
                 raise RuntimeError("master moved after this incident was observed; refusing a non-reproducible fix")
-            stage("GIT", "Creating branch and isolated worktree from master", commit=current_source[:12])
+            stage("GIT", "Creating branch and isolated worktree from {}".format(self.config.base_branch), commit=current_source[:12])
             workspace = self.worktrees.create(incident_id, incident["fingerprint"], current_source, run_id)
             self.worktrees.bootstrap(workspace)
 

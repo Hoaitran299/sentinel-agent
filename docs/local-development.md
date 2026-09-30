@@ -1,46 +1,37 @@
-# Chạy hai project ở local và tạo PR thật
+# Chạy hai project bằng Docker và tạo PR thật
 
-## Terminal 1 — Laravel
+Chỉ hỗ trợ Docker. Hai repo phải nằm cạnh nhau (`../sentinel-demo-app`, `../sentinel-agent`);
+`compose.yaml` ở `sentinel-demo-app` chạy MySQL, Laravel, watcher và dashboard. Xem thêm
+`../sentinel-demo-app/docs/docker.md`.
 
-```bash
-cd /Users/wake/Documents/Projects/demo-agent-ai-auto-fix-bug
-php artisan serve
-```
-
-Nếu frontend cần dev server, mở thêm terminal:
+## Khởi động
 
 ```bash
-cd /Users/wake/Documents/Projects/demo-agent-ai-auto-fix-bug
-npm run dev
+cd sentinel-agent
+cp .env.example .env && chmod 600 .env   # token GitHub/Telegram nếu cần
+
+cd ../sentinel-demo-app
+docker compose up -d --build
+docker compose run --rm watcher claude   # lần đầu: /login rồi /exit
+docker compose exec watcher python -m autofix_agent preflight --config config/docker.json
+docker compose exec app php artisan demo:user --email=demo@example.com
+docker compose logs -f watcher
 ```
 
-Laravel chỉ ghi `storage/logs/laravel.log`; không chạy Claude, watcher hay publisher.
+MySQL (`127.0.0.1:3307` từ host, `mysql:3306` trong container):
 
-## Terminal 2 — Orchestrator backend
+| Database              | Dùng bởi             | User       | Password   |
+|-----------------------|----------------------|------------|------------|
+| `sentinel`            | Laravel              | `sentinel` | `sentinel` |
+| `ai_fix_orchestrator` | watcher, dashboard   | `sentinel` | `sentinel` |
 
-```bash
-cd /Users/wake/Documents/Projects/demo-agent-ai-auto-fix-bug-backend
-make install   # lần đầu
-make db-init   # lần đầu: tạo MySQL database/user, ghi AI_FIX_DATABASE_URL vào .env
-make test
-PYTHONPATH=src .venv/bin/python -m autofix_agent preflight --config config/demo.json
-make watch
-```
+`AI_FIX_DATABASE_URL` do compose đặt (`mysql://sentinel:sentinel@mysql:3306/ai_fix_orchestrator`),
+ghi đè `.env`. Dòng đầu của watcher in `State store connected`.
 
-`.env` backend phải có `AI_FIX_DATABASE_URL` trỏ tới MySQL riêng của orchestrator; xem
-[dashboard.md](dashboard.md). Dòng đầu của watcher in `State store connected`.
+Laravel: http://localhost:8000 — Dashboard: http://localhost:8787 (incident, stepper tiến
+trình, timeline, verification, report và PR theo thời gian thực).
 
-## Terminal 3 — Dashboard
-
-```bash
-cd /Users/wake/Documents/Projects/demo-agent-ai-auto-fix-bug-backend
-make ui
-```
-
-Mở http://localhost:8787 để xem incident, stepper tiến trình, timeline, verification,
-report và PR theo thời gian thực.
-
-Watcher lần đầu bắt đầu từ cuối log. Giữ terminal mở, đăng nhập Laravel và gây đúng lỗi
+Watcher lần đầu bắt đầu từ cuối log. Giữ `docker compose logs -f watcher` mở, đăng nhập Laravel và gây đúng lỗi
 profile ba lần trong 600 giây. Các stage mong đợi:
 
 ```text
@@ -60,17 +51,17 @@ DONE     pull request URL, report path
 Xem lại trạng thái:
 
 ```bash
-make status
+docker compose exec watcher python -m autofix_agent status --config config/docker.json
 ```
 
 Nếu một run fail sau khi đã trigger, orchestrator lưu `var/reports/<run>-failure.md`
 gồm command output và diff chẩn đoán trước khi cleanup. Sau khi sửa nguyên nhân hạ tầng,
 bấm **Retry incident** trên dashboard (watcher đang chạy sẽ nhận), hoặc retry bằng prefix
-hiển thị trong `make status`:
+hiển thị trong lệnh `status`:
 
 ```bash
-PYTHONPATH=src .venv/bin/python -m autofix_agent retry \
-  --config config/demo.json \
+docker compose exec watcher python -m autofix_agent retry \
+  --config config/docker.json \
   --incident 7dfba14a
 ```
 
@@ -84,11 +75,11 @@ Run thật đã tạo:
 
 ## Điều kiện để local tạo PR
 
-- `.env` backend có `AI_FIX_PUBLISH_PR=true` và token hợp lệ.
+- `.env` backend có `AI_FIX_PUBLISH_PR=true` và token hợp lệ (sau khi sửa: `docker compose restart watcher`).
 - GitHub `master` tồn tại và token có quyền fetch; local `master` không cần cùng SHA vì
   publisher dùng private remote-base ref.
-- Claude Code CLI đã authenticated.
-- Composer/npm có thể tải dependency.
+- Claude Code CLI trong container đã authenticated (`docker compose run --rm watcher claude`).
+- Container có mạng để Composer/npm tải dependency.
 - Bot có quyền push feature branch và tạo PR.
 
 Nếu muốn test pipeline mà không tạo GitHub side effect, đặt
@@ -96,6 +87,10 @@ Nếu muốn test pipeline mà không tạo GitHub side effect, đặt
 
 ## Dừng
 
-Nhấn `Ctrl-C` ở watcher, dashboard và Laravel server. Worktree active được cleanup khi run kết thúc;
-local/remote fix branch và report được giữ để review. Không xóa `var/worktrees` thủ công
-khi terminal đang ở stage `FIX` hoặc `VERIFY`.
+```bash
+docker compose stop        # giữ dữ liệu
+docker compose down -v     # xoá cả MySQL, worktree, credentials Claude
+```
+
+Worktree active được cleanup khi run kết thúc; local/remote fix branch và report được giữ
+để review. Không dừng watcher khi đang ở stage `FIX` hoặc `VERIFY`.

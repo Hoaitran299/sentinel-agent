@@ -1,7 +1,7 @@
 {
   "source_repo": "/workspace/laravel",
   "log_path": "/workspace/laravel/storage/logs/laravel.log",
-  "base_branch": "master",
+  "base_branch": "main",
   "state_db": "var/state.sqlite3",
   "database_url_env": "AI_FIX_DATABASE_URL",
   "ui_host": "127.0.0.1",
@@ -29,9 +29,9 @@
   "max_diff_lines": 500,
   "require_new_test": true,
   "publish_pull_request": false,
-  "github_repository": "nguyenthanhthuc2000/demo-agent-ai-auto-fix-bug",
+  "github_repository": "Hoaitran299/sentinel-demo-web",
   "github_api_url": "https://api.github.com",
-  "github_git_url": "https://github.com/nguyenthanhthuc2000/demo-agent-ai-auto-fix-bug.git",
+  "github_git_url": "https://github.com/Hoaitran299/sentinel-demo-web.git",
   "github_token_env": "AI_FIX_GITHUB_TOKEN",
   "github_draft": true,
   "verification_commands": [

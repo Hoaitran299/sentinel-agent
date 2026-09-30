@@ -2,13 +2,13 @@
 
 Project này theo dõi log Laravel từ bên ngoài. Laravel không chạy Claude, không tạo
 worktree và không cần Redis/queue/agent tables. Toàn bộ threshold, trạng thái, workspace,
-verification và report thuộc project này. State lưu trong MySQL riêng
-(`ai_fix_orchestrator`) và có dashboard web local để theo dõi/retry.
+verification và report thuộc project này. State lưu trong MySQL database riêng
+(`ai_fix_orchestrator`, user/pass `sentinel`/`sentinel`) và có dashboard web local để theo dõi/retry.
 
 Companion Laravel application:
 
 ```text
-/Users/wake/Documents/Projects/demo-agent-ai-auto-fix-bug
+../sentinel-demo-app
 ```
 
 ## Luồng chạy
@@ -37,57 +37,41 @@ Source checkout Laravel không bị agent sửa trực tiếp. Worktree được
 local branch `ai-fix/...` và report được giữ lại để review. Nếu bật publisher, PR được
 tạo bởi process trusted riêng; Claude không bao giờ nhận GitHub token.
 
-## Chạy demo
+## Chạy demo (Docker)
 
-Chạy toàn bộ bằng Docker: xem `docs/docker.md` trong companion Laravel project
-(`docker compose up -d --build` từ thư mục Laravel).
-
-Yêu cầu: Python 3.9+, MySQL 8, Git, Composer, Node/npm và Claude Code đã đăng nhập.
-
-```bash
-make install   # .venv + PyMySQL
-make db-init   # tạo database/user MySQL riêng, ghi AI_FIX_DATABASE_URL vào .env
-```
-
-Chi tiết và cách tạo thủ công xem [hướng dẫn dashboard](docs/dashboard.md). Chọn ngôn ngữ report/PR bằng
-`AI_FIX_REPORT_LANGUAGE=en|vi|ja` ([chi tiết](docs/configuration.md#ngôn-ngữ-report)).
-
-Thiết lập GitHub publisher:
+Project chỉ hỗ trợ chạy bằng Docker. `compose.yaml` nằm ở companion Laravel
+(`../sentinel-demo-app`) và chạy cả MySQL, Laravel, watcher, dashboard; source project này
+được bind-mount vào `/app`. Hướng dẫn đầy đủ: `../sentinel-demo-app/docs/docker.md`.
 
 ```bash
-cp .env.example .env
-chmod 600 .env
-# Điền AI_FIX_GITHUB_TOKEN rồi đặt AI_FIX_PUBLISH_PR=true
+cp .env.example .env && chmod 600 .env   # điền AI_FIX_GITHUB_TOKEN / Telegram nếu cần
+
+cd ../sentinel-demo-app
+docker compose up -d --build
+docker compose run --rm watcher claude   # lần đầu: /login rồi /exit
+docker compose exec watcher python -m autofix_agent preflight --config config/docker.json
+docker compose logs -f watcher
 ```
+
+- MySQL: database `ai_fix_orchestrator`, user `sentinel`, password `sentinel`
+  (`AI_FIX_DATABASE_URL` do compose đặt). Laravel dùng database `sentinel` cùng user.
+- Dashboard: http://localhost:8787
+- Bật tạo PR: đặt `AI_FIX_PUBLISH_PR=true` trong `.env` rồi `docker compose restart watcher`.
+- Chọn ngôn ngữ report/PR bằng `AI_FIX_REPORT_LANGUAGE=en|vi|ja`
+  ([chi tiết](docs/configuration.md#ngôn-ngữ-report)).
+
+Thao tác lỗi profile ba lần trong Laravel; log watcher và dashboard sẽ hiện các stage
+`OBSERVE`, `TRIGGER`, `ANALYZE`, `GUARD`, `FIX`, `VERIFY`, `GIT` và `DONE`.
 
 ```bash
-make test
-PYTHONPATH=src .venv/bin/python -m autofix_agent preflight --config config/demo.json
-make watch   # terminal 1
-make ui      # terminal 2 -> http://localhost:8787
+docker compose exec watcher python -m autofix_agent status --config config/docker.json
+docker compose exec watcher python -m autofix_agent retry --config config/docker.json --incident <incident-prefix>
+docker compose exec watcher python -m unittest discover -s tests   # test suite
 ```
 
-Giữ terminal `make watch` mở, sau đó thao tác lỗi profile ba lần trong Laravel. Terminal
-và dashboard sẽ hiện các stage `OBSERVE`, `TRIGGER`, `ANALYZE`, `GUARD`, `FIX`, `VERIFY`,
-`GIT` và `DONE`. Xem trạng thái gần nhất trong terminal bằng:
-
-```bash
-make status
-```
-
-Run thất bại lưu failure report và preserved diff trước khi cleanup. Có thể retry bằng nút
-**Retry incident** trên dashboard (watcher sẽ nhận và chạy) hoặc bằng CLI:
-
-```bash
-PYTHONPATH=src .venv/bin/python -m autofix_agent retry --config config/demo.json --incident <incident-prefix>
-```
-
-Watcher mặc định bắt đầu từ cuối log ở lần chạy đầu để không xử lý lại lỗi cũ. Để đọc
-lại log hiện tại từ đầu (chỉ dùng kiểm thử):
-
-```bash
-PYTHONPATH=src .venv/bin/python -m autofix_agent watch --config config/demo.json --from-start --once
-```
+Run thất bại lưu failure report và preserved diff trước khi cleanup; có thể retry bằng nút
+**Retry incident** trên dashboard hoặc lệnh `retry` ở trên. Watcher mặc định bắt đầu từ
+cuối log ở lần chạy đầu để không xử lý lại lỗi cũ.
 
 ## Ranh giới an toàn
 
@@ -116,7 +100,7 @@ PYTHONPATH=src .venv/bin/python -m autofix_agent watch --config config/demo.json
 - [Dashboard và MySQL state store](docs/dashboard.md)
 - [Cấu hình và biến môi trường](docs/configuration.md)
 - [GitHub token và PR publisher](docs/github-publishing.md)
-- [Chạy đồng thời hai project ở local](docs/local-development.md)
+- [Chạy hai project bằng Docker](docs/local-development.md)
 - [Cài đặt chế độ xử lý và ngưỡng](docs/dashboard.md#5-cài-đặt-xử-lý-lỗi)
 - [Nguồn log: local, server khác, S3, Cloudflare R2](docs/log-sources.md)
 - [Thông báo Telegram](docs/telegram.md)
