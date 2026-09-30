@@ -10,7 +10,7 @@ liên quan đến AI, Git, dependency bootstrap, verification và report.
 
 - `LogSource` + `LogTailer`: đọc byte mới từ `file`, `http` (Range), `ssh` hoặc `s3`
   (AWS/R2/MinIO), lưu cursor (identity + offset) để theo dõi append và rotation; parser
-  Laravel dùng chung, không nuốt dòng đang ghi dở. Xem [log-sources.md](log-sources.md).
+  Laravel dùng chung, không nuốt dòng đang ghi dở. Xem [log-sources.md](../setup/log-sources.md).
 - `RuntimeSettings`: chế độ (`report_and_fix`/`fix_only`/`report_only`), ngưỡng và cửa sổ,
   lưu trong bảng `settings`, watcher đọc lại mỗi poll.
 - `StateStore`: MySQL riêng của orchestrator (SQLite chỉ để test/fallback). Threshold,
@@ -45,16 +45,11 @@ Claude process chỉ kế thừa allowlist environment (`HOME`, `PATH`, locale..
 Laravel variables. Telegram token, production database credential và GitHub credential
 không đi vào prompt, worktree hoặc process environment.
 
-## Vì sao không dùng database của Laravel
+## State store
 
-Nếu agent state nằm trong Laravel, web app phải mang migration, queue job và coupling với
-runner. Orchestrator dùng database MySQL riêng (`ai_fix_orchestrator`) với user riêng, tự
-migrate schema của mình; Laravel không biết đến các bảng này. Redis không cần thiết vì
-watcher hiện tại là một process; MySQL transaction là durable source of truth.
-
-MySQL thay SQLite để dashboard và watcher đọc/ghi đồng thời ổn định, backup bằng công cụ
-chuẩn và chuẩn bị cho việc runner/dashboard nằm ở process hoặc host khác nhau. Connection
-tự reconnect khi MySQL đóng connection idle (`wait_timeout`).
+Orchestrator dùng database MySQL riêng (`ai_fix_orchestrator`), tự migrate schema của mình;
+Laravel không biết đến các bảng này. Lý do thiết kế xem
+[Q&A kiến trúc](../qa/architecture-qa.md#vì-sao-không-dùng-database-của-laravel).
 
 ## Dashboard và retry
 

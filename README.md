@@ -41,7 +41,7 @@ tạo bởi process trusted riêng; Claude không bao giờ nhận GitHub token.
 
 Project chỉ hỗ trợ chạy bằng Docker. `compose.yaml` nằm ở companion Laravel
 (`../sentinel-demo-app`) và chạy cả MySQL, Laravel, watcher, dashboard; source project này
-được bind-mount vào `/app`. Hướng dẫn đầy đủ: `../sentinel-demo-app/docs/docker.md`.
+được bind-mount vào `/app`. Hướng dẫn đầy đủ: `../sentinel-demo-app/docs/setup/docker.md`.
 
 ```bash
 cp .env.example .env && chmod 600 .env   # điền AI_FIX_GITHUB_TOKEN / Telegram nếu cần
@@ -58,7 +58,7 @@ docker compose logs -f watcher
 - Dashboard: http://localhost:8787
 - Bật tạo PR: đặt `AI_FIX_PUBLISH_PR=true` trong `.env` rồi `docker compose restart watcher`.
 - Chọn ngôn ngữ report/PR bằng `AI_FIX_REPORT_LANGUAGE=en|vi|ja`
-  ([chi tiết](docs/configuration.md#ngôn-ngữ-report)).
+  ([chi tiết](docs/setup/configuration.md#ngôn-ngữ-report)).
 
 Thao tác lỗi profile ba lần trong Laravel; log watcher và dashboard sẽ hiện các stage
 `OBSERVE`, `TRIGGER`, `ANALYZE`, `GUARD`, `FIX`, `VERIFY`, `GIT` và `DONE`.
@@ -96,14 +96,18 @@ cuối log ở lần chạy đầu để không xử lý lại lỗi cũ.
 
 ## Tài liệu
 
-- [Kiến trúc](docs/architecture.md)
-- [Dashboard và MySQL state store](docs/dashboard.md)
-- [Cấu hình và biến môi trường](docs/configuration.md)
-- [GitHub token và PR publisher](docs/github-publishing.md)
-- [Chạy hai project bằng Docker](docs/local-development.md)
-- [Cài đặt chế độ xử lý và ngưỡng](docs/dashboard.md#5-cài-đặt-xử-lý-lỗi)
-- [Nguồn log: local, server khác, S3, Cloudflare R2](docs/log-sources.md)
-- [Thông báo Telegram](docs/telegram.md)
-- [Troubleshooting và retry](docs/troubleshooting.md)
-- [Deploy runner Ubuntu VPS](docs/deployment-ubuntu-vps.md)
-- [Trạng thái implementation](docs/implementation-status.md)
+Xem [docs/README.md](docs/README.md). Tài liệu chia 3 nhóm:
+
+- **Build** — thiết kế và xây dựng dự án:
+  [kiến trúc](docs/build/architecture.md),
+  [trạng thái implementation](docs/build/implementation-status.md)
+- **Setup** — cài đặt, cấu hình, vận hành:
+  [Docker](docs/setup/docker.md),
+  [cấu hình và biến môi trường](docs/setup/configuration.md),
+  [dashboard và MySQL state store](docs/setup/dashboard.md),
+  [GitHub token và PR publisher](docs/setup/github-publishing.md),
+  [nguồn log](docs/setup/log-sources.md),
+  [Telegram](docs/setup/telegram.md),
+  [troubleshooting và retry](docs/setup/troubleshooting.md),
+  [deploy Ubuntu VPS](docs/setup/deployment-ubuntu-vps.md)
+- **Q&A** — câu hỏi về kiến trúc: [architecture Q&A](docs/qa/architecture-qa.md)

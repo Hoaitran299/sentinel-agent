@@ -2,7 +2,7 @@
 
 Chỉ hỗ trợ Docker. Hai repo phải nằm cạnh nhau (`../sentinel-demo-app`, `../sentinel-agent`);
 `compose.yaml` ở `sentinel-demo-app` chạy MySQL, Laravel, watcher và dashboard. Xem thêm
-`../sentinel-demo-app/docs/docker.md`.
+`../sentinel-demo-app/docs/setup/docker.md`.
 
 ## Khởi động
 
